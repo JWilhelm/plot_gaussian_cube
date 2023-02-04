@@ -20,17 +20,15 @@ def plot_gaussian_cube(file_name, png_name, z_min_A, z_max_A):
         vec_a[:]  = [float(x) for x in header[1].split()[1:]]
         vec_b[:]  = [float(x) for x in header[2].split()[1:]]
         vec_c[:]  = [float(x) for x in header[3].split()[1:]]
-        if abs(vec_c[0]) > 1.0E-10 or abs(vec_c[1]) > 1.0E-10: 
+        if abs(vec_c[0]) > 1.0E-10 or abs(vec_c[1]) > 1.0E-10:
            print("Script assumes that third vector is aligned in z, exit")
            quit()
         atom_data = [list(map(float, line.split())) for line in lines[6:6+n_atoms]]
-        atom_type = np.zeros(n_atoms)
+        atom_types = np.zeros(n_atoms)
         atom_coord  = np.zeros([n_atoms, 3])
         for i_atom in range(n_atoms):
-            atom_type[i_atom]   = atom_data[i_atom][0]
+            atom_types[i_atom]   = atom_data[i_atom][0]
             atom_coord [i_atom,:] = atom_data[i_atom][2:]
-        print("first atom =", atom_type[0],  atom_coord[0,:])
-        print("last atom  =", atom_type[-1], atom_coord[-1,:])
         n_a = int(header[1].split()[0])
         n_b = int(header[2].split()[0])
         n_c = int(header[3].split()[0])
@@ -55,7 +53,7 @@ def plot_gaussian_cube(file_name, png_name, z_min_A, z_max_A):
           if len(data) == row_index:
               do_exit = True
 
-          if do_exit: 
+          if do_exit:
             break
         if do_exit:
           break
@@ -69,9 +67,6 @@ def plot_gaussian_cube(file_name, png_name, z_min_A, z_max_A):
     data_2d = np.zeros( [ n_2d, n_2d ] )
     longest_axis_basis_vectors = max( abs(vec_a[0]+vec_b[0]) , abs(vec_a[0]-vec_b[0]) , abs(vec_a[1]+vec_b[1]) , abs(vec_a[1]-vec_b[1]) )
 
-    print("longest_axis_basis_vectors =", longest_axis_basis_vectors)
-    print("Plotting area is square of size =", n_2d*longest_axis_basis_vectors)
-
     hmat_cell = np.zeros([2,2])
     hmat_cell[0,0] = vec_a[0]
     hmat_cell[1,0] = vec_a[1]
@@ -82,7 +77,6 @@ def plot_gaussian_cube(file_name, png_name, z_min_A, z_max_A):
     atom_coord_plotting = np.zeros([n_atoms, 2])
     for i_atom in range(n_atoms):
         atom_coord_plotting[i_atom,:] = atom_coord[i_atom,0:2] / longest_axis_basis_vectors
-        print(i_atom, atom_coord[i_atom,0:2], atom_coord_plotting[i_atom,:])
 
     hmat_cell_inv = np.linalg.inv(hmat_cell)
     expansion_coeff = np.zeros(2)
@@ -129,14 +123,17 @@ def plot_gaussian_cube(file_name, png_name, z_min_A, z_max_A):
        x_y_max_in_A = x_y_max*0.529
        plt.imshow(data_2d[::-1,:], extent=(0,x_y_max_in_A,0,x_y_max_in_A))
        plt.colorbar()
-       plt.savefig(png_name+"_z_"+"{:.2f}".format(actual_z_value_in_A)+".png")
+       plt.savefig(png_name+"_z_"+"{:.2f}".format(actual_z_value_in_A)+".png", dpi=300)
 
        # Map numbers to colors using a colormap
        cmap = plt.get_cmap('Reds')
-       colors = [cmap(n/100) for n in atom_type]
+       colors = [cmap(n/100) for n in atom_types]
 
-       print("n_2d =", n_2d)
-       print("x_y_max =", x_y_max)
+       for counter, atom_type in enumerate(atom_types):
+         if atom_type == 16: colors[counter] = 'yellow'
+         if atom_type == 34: colors[counter] = 'orange'
+         if atom_type == 42: colors[counter] = 'gray'
+         if atom_type == 74: colors[counter] = 'black'
 
        # Add the crosses
        cell_vec_a = vec_a*n_a
@@ -146,10 +143,7 @@ def plot_gaussian_cube(file_name, png_name, z_min_A, z_max_A):
            for b_neighbor_cell in [-2,-1,0,1,2]:
              atom_coord_cell = atom_coord[i_atom, :] + a_neighbor_cell*cell_vec_a + b_neighbor_cell*cell_vec_b
              if atom_coord_cell[0] > 0 and atom_coord_cell[0] < x_y_max and atom_coord_cell[1] > 0 and atom_coord_cell[1] < x_y_max:
-                print("atom coord in Angström: ", atom_coord_cell[0]*0.529, atom_coord_cell[1]*0.529)
-#                plt.plot(atom_coord_cell[0]/longest_axis_basis_vectors, atom_coord_cell[1]/longest_axis_basis_vectors, marker='x', markersize=6, markeredgewidth=2, color=color)
-#                plt.plot(atom_coord_cell[0]/x_y_max*n_2d, atom_coord_cell[1]/x_y_max*n_2d, marker='x', markersize=6, markeredgewidth=2, color=color)
-                plt.plot(atom_coord_cell[0]*0.529, atom_coord_cell[1]*0.529, marker='x', markersize=6, markeredgewidth=2, color=color)
+                plt.plot(atom_coord_cell[0]*0.529, atom_coord_cell[1]*0.529, marker='x', markersize=6, markeredgewidth=1.4, color=color)
 
        x_pts = np.zeros(2)
        y_pts = np.zeros(2)
@@ -171,7 +165,7 @@ def plot_gaussian_cube(file_name, png_name, z_min_A, z_max_A):
        plt.xlim(0,x_y_max_in_A)
        plt.ylim(0,x_y_max_in_A)
 
-       plt.savefig(png_name+"_z_"+"{:.2f}".format(actual_z_value_in_A)+"_with_atom_positions.png")
+       plt.savefig(png_name+"_z_"+"{:.2f}".format(actual_z_value_in_A)+"_with_atom_positions.png", dpi=300)
 
 ## z in Anström
 #for z in np.arange(15):
@@ -186,4 +180,4 @@ def plot_gaussian_cube(file_name, png_name, z_min_A, z_max_A):
 #plot_gaussian_cube("MoS2-LOCAL_BANDGAP-GW_LDOS_CBM_in_eV.cube", "GW_LDOS_CBM_2d", 4.0, 6.0)
 #plot_gaussian_cube("MoS2-LOCAL_BANDGAP-DFT_LDOS_VBM_in_eV.cube", "DFT_LDOS_VBM_2d", 4.0, 6.0)
 #plot_gaussian_cube("MoS2-LOCAL_BANDGAP-DFT_LDOS_CBM_in_eV.cube", "DFT_LDOS_CBM_2d", 4.0, 6.0)
-plot_gaussian_cube("MoS2-ELECTRON_DENSITY-1_0.cube", "E-Density", 4.0, 6.0)
+plot_gaussian_cube("MoS2-ELECTRON_DENSITY-1_0.cube", "E-Density", 10.0, 11.0)
